@@ -1,0 +1,1 @@
+{ "name": "@xekko/core", "version": "1.0.0", "type": "module", "main": "dist/index.js", "types": "dist/index.d.ts", "scripts": { "build": "tsup src/index.ts --format esm,cjs --dts", "dev": "tsup src/index.ts --format esm --watch", "test": "vitest" }, "dependencies": { "zod": "^3" }, "devDependencies": {} }

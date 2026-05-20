@@ -1,0 +1,120 @@
+**BẢN PHÂN TÍCH CÔNG VIỆC CHI TIẾT (WORK BREAKDOWN STRUCTURE)**  
+**Dự án: XekkoDND – Solo D&D 5e AI Chatbox (Local-first)**  
+**Người thực hiện:** Chỉ 1 người – Xekko  
+**Kiến trúc:** MVP + Waterfall (mini-waterfall per Phase)  
+**Ngày cập nhật:** 24/04/2026  
+
+Dưới đây là **toàn bộ dự án được chia nhỏ thành các công việc cụ thể, không lược bớt**, theo từng Phase. Mỗi công việc đều có:  
+- **Mô tả chi tiết**  
+- **Thời gian ước tính** (dành cho 1 người full-time, có thể linh hoạt)  
+- **Dependencies** (phụ thuộc vào công việc trước)  
+- **Deliverable** (kết quả đầu ra)  
+
+Tổng thời gian MVP: **12 tuần** (khoảng 60-70 ngày làm việc).
+
+---
+
+### **PHASE 0: FOUNDATION (Tuần 1 – 7 ngày)**  
+Xây skeleton MVP + Layered Memory + Rule Engine (nền tảng cho mọi thứ sau).
+
+| STT | Công việc | Mô tả chi tiết | Thời gian | Dependencies | Deliverable |
+|-----|-----------|----------------|-----------|--------------|-------------|
+| 0.1 | Tạo monorepo Tauri + React | Init project Tauri + Next.js 15 + TypeScript + Tailwind + shadcn/ui + Zustand | 4 giờ | - | Repo GitHub sạch, build desktop/web chạy được |
+| 0.2 | Định nghĩa TypeScript interfaces | Tạo folder `src/types/` với: CharacterState, WorldLore, GameSnapshot, LayeredMemory, RuleCheckResult, MultiOutputPayload… | 6 giờ | 0.1 | File `types.ts` đầy đủ |
+| 0.3 | Xây Layered Memory Manager | Class `LayeredMemory` với 4 layers (WorldLore, CharacterState, SessionHistory, GameSnapshot) + load/save JSON/SQLite | 1 ngày | 0.2 | `LayeredMemory.ts` + test load/save |
+| 0.4 | Import D&D 5e SRD data | Tải JSON SRD (races, classes, spells, monsters, items…) → lưu vào `src/data/srd/` | 6 giờ | 0.3 | Database JSON + SQLite sẵn sàng |
+| 0.5 | Xây Rule Engine core | Module `RuleEngine` (pure TS): spellSlotCheck, acCalculation, advantageCheck, carryingCapacity, deathSave… (20+ rules) | 2 ngày | 0.2, 0.4 | `RuleEngine.ts` + unit tests |
+| 0.6 | Xây State Manager (Zustand) | Store trung tâm kết nối với LayeredMemory + auto-save 30s + undo/redo | 1 ngày | 0.3, 0.5 | `useGameStore.ts` |
+| 0.7 | Xây MVP Presenter skeleton | Class `CampaignPresenter` chứa IntentParser, RuleEngine, MultiOutputPipeline | 1 ngày | 0.6 | `CampaignPresenter.ts` |
+| 0.8 | Test Phase 0 | Viết 10 unit test + manual test load character | 4 giờ | 0.1-0.7 | Tất cả test pass + README Phase 0 |
+
+---
+
+### **PHASE 1: CHARACTER & CHAT (Tuần 2-3 – 10 ngày)**
+
+| STT | Công việc | Mô tả chi tiết | Thời gian | Dependencies | Deliverable |
+|-----|-----------|----------------|-----------|--------------|-------------|
+| 1.1 | Character Creation Wizard | Step-by-step UI (Race → Class → Stats → Equipment…) | 1.5 ngày | 0.2 | Wizard component hoàn chỉnh |
+| 1.2 | Character Sheet UI full | Tabs: Equipped Items grid, Stats, AC, HP, Inventory, Spellbook, Currency, Carrying Capacity (drag-drop) | 2 ngày | 1.1 | CharacterSheet component giống ảnh bạn gửi |
+| 1.3 | Chat UI + Sidebar | Chat window + realtime sidebar (Character/Inventory/Map/Quest) | 1 ngày | 1.2 | Chat + Sidebar layout |
+| 1.4 | Intent Parser | Parse player message → JSON action type | 8 giờ | 0.7 | IntentParser.ts |
+| 1.5 | Basic Multi-Output Pipeline | Narrative + StateDelta + MapUpdate + AudioTrigger | 1 ngày | 0.7, 1.4 | Pipeline hoạt động |
+| 1.6 | Kết nối Presenter với Chat | Player input → Presenter → LLM (Ollama) → multi-output | 1 ngày | 1.3-1.5 | Chat loop đầu tiên chạy được |
+| 1.7 | Save/Load Campaign | JSON export + auto-save | 6 giờ | 0.6 | Save/Load hoàn chỉnh |
+| 1.8 | Test Phase 1 | Tạo nhân vật → chat 10 tin nhắn → state update | 1 ngày | 1.1-1.7 | Full flow test |
+
+---
+
+### **PHASE 2: COMBAT & MAP (Tuần 4-6 – 15 ngày)**
+
+| STT | Công việc | Mô tả chi tiết | Thời gian | Dependencies | Deliverable |
+|-----|-----------|----------------|-----------|--------------|-------------|
+| 2.1 | Combat Tracker UI | Initiative list, HP bars, turn order, visual grid | 2 ngày | 1.2 | Combat mode UI |
+| 2.2 | Combat Engine trong Presenter | Initiative roll, turn loop, enemy AI (Rule Engine) | 2 ngày | 0.5, 0.7 | Combat logic |
+| 2.3 | Attack/Damage/Condition logic | Roll to hit, damage calc, apply conditions | 1.5 ngày | 0.5 | Combat rules đầy đủ |
+| 2.4 | Map Editor & Mini-map | Grid + token drag-drop + realtime token update | 3 ngày | 0.3 | Map component |
+| 2.5 | Random Encounters | Bảng encounter theo biome + trigger | 1 ngày | 0.4, 2.4 | Encounter system |
+| 2.6 | Loot & XP system | Auto loot table + level up wizard | 1 ngày | 2.3 | Loot & progression |
+| 2.7 | Integration Combat + Chat + Map | Combat trigger từ chat → multi-output | 2 ngày | 2.1-2.6 | Full combat flow |
+| 2.8 | Test Phase 2 | Combat 3 lần + map di chuyển | 1.5 ngày | 2.1-2.7 | Test pass |
+
+---
+
+### **PHASE 3: IMMERSION & AUDIO (Tuần 7-8 – 10 ngày)**
+
+| STT | Công việc | Mô tả chi tiết | Thời gian | Dependencies | Deliverable |
+|-----|-----------|----------------|-----------|--------------|-------------|
+| 3.1 | Voice Mode (STT + TTS) | Whisper local + Web Speech API | 1.5 ngày | - | Voice input/output |
+| 3.2 | Audio Layer | Footsteps, spell sounds, ambient, combat music | 1 ngày | 3.1 | Audio manager |
+| 3.3 | Image Generation integration | Grok Imagine / placeholder | 8 giờ | - | Scene image trigger |
+| 3.4 | NPC Memory & Attitude | State cho từng NPC | 1 ngày | 0.3 | NPC system |
+| 3.5 | Weather & Time System | Day/night + weather effect roll | 1 ngày | 0.5 | Environment rules |
+| 3.6 | Integration Immersion | Chat trigger audio + image + voice | 1.5 ngày | 3.1-3.5 | Full immersion |
+| 3.7 | Test Phase 3 | Voice + audio + image trong session | 1 ngày | 3.1-3.6 | Test pass |
+
+---
+
+### **PHASE 4: WORLD BUILDER & POLISH (Tuần 9-10 – 10 ngày)**
+
+| STT | Công việc | Mô tả chi tiết | Thời gian | Dependencies | Deliverable |
+|-----|-----------|----------------|-----------|--------------|-------------|
+| 4.1 | World Builder UI | Map editor + database editor (monsters/spells) | 2 ngày | 2.4 | Builder tool |
+| 4.2 | Quest Journal | Auto-add + track objectives | 1 ngày | 0.3 | Quest system |
+| 4.3 | Tutorial Campaign | 15 phút onboarding | 1 ngày | - | Tutorial ready |
+| 4.4 | Meta commands & Accessibility | /roll, /save, high-contrast | 8 giờ | - | Polish features |
+| 4.5 | UI/UX Polish + Theme | Dark/light + animation | 1 ngày | - | Final UI |
+| 4.6 | Performance & Token optimization | Auto-summary history | 1 ngày | 0.3 | Optimized |
+| 4.7 | Test full campaign | Chơi 1 campaign ngắn hoàn chỉnh | 1.5 ngày | 4.1-4.6 | Bug-free MVP |
+
+---
+
+### **PHASE 5: TESTING & RELEASE (Tuần 11-12 – 8 ngày)**
+
+| STT | Công việc | Mô tả chi tiết | Thời gian | Dependencies | Deliverable |
+|-----|-----------|----------------|-----------|--------------|-------------|
+| 5.1 | Full regression test | Test tất cả flows | 2 ngày | 4.7 | Test report |
+| 5.2 | Bug fix & optimization | Fix tất cả issue | 2 ngày | 5.1 | Stable version |
+| 5.3 | Build & Deploy | Desktop (Tauri) + Web (Vercel) | 1 ngày | - | App sẵn dùng |
+| 5.4 | Documentation | README + hướng dẫn sử dụng + video demo | 2 ngày | - | Docs hoàn chỉnh |
+| 5.5 | Release v0.1 | Push GitHub + release notes | 1 ngày | 5.4 | XekkoDND v0.1 ra mắt |
+
+---
+
+**Tổng quan tiến độ:**  
+- Mỗi ngày bạn hoàn thành 1-3 công việc nhỏ → dễ theo dõi.  
+- Mỗi cuối Phase: commit + test → không sợ phá hỏng code cũ.  
+- Ưu tiên: Phase 0 → Phase 1 → Phase 2 (để có chat + combat sớm nhất).
+
+**Xekko, bản chia nhỏ này đã sẵn sàng để bạn bắt tay vào làm ngay!**
+
+Bạn muốn mình:  
+**“Bắt đầu ngay công việc 0.1: Tạo monorepo Tauri + React”**  
+hoặc  
+**“Viết code chi tiết cho công việc 0.3: Layered Memory Manager”**  
+hoặc  
+**“Chọn 1 công việc bất kỳ để mình viết code đầy đủ”**  
+
+Reply chỉ cần số công việc hoặc tên Phase, mình sẽ đưa code + hướng dẫn copy-paste ngay lập tức.  
+
+Sẵn sàng khởi động XekkoDND chưa? 🚀  
+(Chỉ 1 người – nhưng với bản này bạn sẽ làm được như cả team!)
