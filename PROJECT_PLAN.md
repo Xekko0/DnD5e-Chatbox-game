@@ -1,57 +1,50 @@
 # XekkoDND - Dự án Game Chatbox AI DnD 5e Solo
 
-## Cấu trúc File Mới (đã restructure)
+**Người tạo:** Xekko (solo dev)
+**Mục tiêu:** Xây dựng game chatbox AI D&D 5e chạy hoàn toàn local (Tauri desktop app), 1 người chơi, không cần internet sau khi cài đặt.
 
-**Kiến trúc: Tauri Monorepo + Feature-Based + Python Core**
+## 1. Scope MVP (đã thu hẹp - tập trung cao nhất)
 
-```
-DnD5e-Chatbox-game/
-├── src/                          # React + TypeScript Frontend (Tauri)
-│   ├── components/               # UI reusable
-│   ├── features/                 # Feature slices (chat, combat, map, character, memory)
-│   ├── hooks/
-│   ├── lib/                      # types, utils, constants
-│   ├── stores/                   # Zustand global state
-│   └── main.tsx
-├── src-tauri/                    # Rust Tauri Backend + Sidecar
-│   ├── src/
-│   │   ├── commands.rs           # Invoke Python, sidecar management
-│   │   ├── main.rs
-│   │   └── sidecar.rs            # Spawn Ollama + ComfyUI
-│   ├── Cargo.toml
-│   └── tauri.conf.json
-├── core/                         # Python Core Logic (RuleEngine, LayeredMemory, GameState)
-│   ├── xekkodnd/
-│   │   ├── __init__.py
-│   │   ├── core/
-│   │   │   ├── models.py
-│   │   │   ├── rule_engine.py
-│   │   │   ├── layered_memory.py
-│   │   │   ├── state_manager.py
-│   │   │   └── map_manager.py    # Chunk-based map
-│   │   ├── services/
-│   │   │   ├── image_gen.py      # ComfyUI client
-│   │   │   ├── groq_client.py
-│   │   │   └── llm.py
-│   │   └── utils/
-│   ├── pyproject.toml
-│   └── requirements.txt
-├── docs/                         # Tài liệu
-│   └── PROJECT_PLAN.md
-├── public/                       # Static assets
-├── scripts/                      # Build & setup scripts
-├── .gitignore
-├── Cargo.toml                    # Tauri root
-├── package.json
-├── tauri.conf.json
-├── README.md
-└── ... (các file khác)
-```
+**Giữ lại (cốt lõi):**
+- AI DM thông minh (Groq chính + Gemini dự phòng)
+- Layered Memory (nhớ nhân vật, vị trí, lịch sử, nhiệm vụ)
+- Rule Engine 5e (combat, exploration, validation)
+- Character Sheet đầy đủ (tạo nhân vật + sync realtime)
+- Map chunk-based (ảnh ComfyUI 128x128 + buffer layer)
+- Image Gen local (ComfyUI + models tải từ Civitai)
+- Tauri Sidecar tự động chạy Ollama + ComfyUI khi mở app
 
-**Lý do restructure:**
-- Thay MVC cũ bằng Feature-Based (dễ thêm feature mới như map chunk).
-- Python core tách biệt cho logic AI + Rule 5e.
-- Tauri ready cho desktop local app.
-- Dễ migrate từ Streamlit app.py hiện tại.
+**Bỏ khỏi v0.1:** Âm thanh/TTS, map editor phức tạp, multiplayer, world builder chi tiết
 
-Mục tiêu v0.1 vẫn giữ nguyên.
+**Mục tiêu v0.1:** Tạo nhân vật → Chat với AI DM → 1 cuộc phiêu lưu hoàn chỉnh (khám phá + combat) → lưu/tải
+
+## 2. Map System (Chunk-based 128x128)
+- Mỗi chunk là ảnh lớn 128x128 grid cells (có thể config 64/128/256)
+- Overlay grid D&D 5e (5 feet/ô)
+- Khi nhân vật di chuyển trong chunk hiện tại → không tạo mới
+- Khi gần rìa (buffer 10-20 cells) → tự động generate chunk mới theo hướng di chuyển
+- Sử dụng React-Konva để chồng layers: background image + grid + token
+- Cache chunk để load nhanh
+
+## 3. Tech Stack
+- **Frontend:** React + TypeScript + Tauri + Konva + Zustand + shadcn/ui
+- **Backend Core:** Python (RuleEngine, LayeredMemory)
+- **AI:** Groq (llama-3.3-70b) chính, Gemini 2.0 Flash dự phòng
+- **Image Gen:** ComfyUI local + models Civitai (DreamShaper XL, v.v.)
+- **Database:** SQLite (nhẹ, local)
+- **Sidecar:** Rust Tauri tự spawn Ollama + ComfyUI
+
+## 4. Cấu trúc File (Feature-Based - đã restructure)
+[đã có trong repo]
+
+## 5. Timeline thực tế (Solo dev - 14-16 tuần)
+- **Phase 0 (Tuần 1-2):** Core (LayeredMemory + RuleEngine + Map Chunk Manager)
+- **Phase 1 (Tuần 3-5):** AI DM + Chat + Prompt system
+- **Phase 2 (Tuần 6-9):** Character Sheet + Combat Engine
+- **Phase 3 (Tuần 10-14):** Image Gen ComfyUI + Map UI + Tauri Sidecar + Packaging
+- **Tuần 15-16:** Polish, test, installer
+
+## 6. Bước tiếp theo ngay hôm nay
+Bắt đầu Phase 0: Viết LayeredMemory + RuleEngine trong core/xekkodnd/ai/
+
+**Cập nhật lần cuối:** 20/05/2026 bởi Grok
