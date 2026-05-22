@@ -212,6 +212,8 @@ export interface RuleCheckResult {
   advantage?: boolean;
   disadvantage?: boolean;
   message: string;
+  /** Immutable state delta — caller applies this instead of the function mutating directly */
+  delta?: Partial<CharacterState>;
 }
 
 export interface IntentParseResult {

@@ -189,28 +189,29 @@ export class RuleEngine {
 
   /**
    * Rule 6: Death Saving Throw
-   * Character unconscious makes death saves
+   * Returns a delta — caller must apply it to character state (no mutation).
    */
   deathSavingThrow(character: CharacterState): RuleCheckResult {
     const roll = rollD20(false, false);
     const success = roll >= 10;
 
-    if (success) {
-      character.deathSaveSuccesses++;
-    } else if (roll === 1) {
-      // Natural 1 counts as 2 failures
-      character.deathSaveFailures += 2;
-    } else {
-      character.deathSaveFailures++;
-    }
+    const successDelta = success ? 1 : 0;
+    // Natural 1 counts as 2 failures
+    const failureDelta = !success ? (roll === 1 ? 2 : 1) : 0;
 
-    const dead = character.deathSaveFailures >= 3;
-    const stable = character.deathSaveSuccesses >= 3;
+    const newSuccesses = character.deathSaveSuccesses + successDelta;
+    const newFailures = character.deathSaveFailures + failureDelta;
+    const dead = newFailures >= 3;
+    const stable = newSuccesses >= 3;
 
     return {
       passed: stable,
       roll,
-      message: `Death Save: ${roll} [${success ? 'SUCCESS' : 'FAILURE'}] (${character.deathSaveSuccesses}S / ${character.deathSaveFailures}F) ${dead ? '[DEAD]' : stable ? '[STABLE]' : ''}`,
+      delta: {
+        deathSaveSuccesses: newSuccesses,
+        deathSaveFailures: newFailures,
+      },
+      message: `Death Save: ${roll} [${success ? 'SUCCESS' : 'FAILURE'}] (${newSuccesses}S / ${newFailures}F) ${dead ? '[DEAD]' : stable ? '[STABLE]' : ''}`,
     };
   }
 
@@ -219,7 +220,6 @@ export class RuleEngine {
    * Checks if character can carry total weight
    */
   carryingCapacity(character: CharacterState, totalWeight: number): RuleCheckResult {
-    const strModifier = getModifier(character.abilityScores.STR);
     const capacity = 15 * character.abilityScores.STR;
     const push_drag = 30 * character.abilityScores.STR;
     const passed = totalWeight <= capacity;
@@ -362,13 +362,13 @@ export class RuleEngine {
 
   /**
    * Rule 13: Condition Application
-   * Apply or remove conditions
+   * Returns a delta — caller applies new conditions array (no mutation).
    */
   applyCondition(character: CharacterState, condition: Condition): RuleCheckResult {
     if (!character.conditions.includes(condition)) {
-      character.conditions.push(condition);
       return {
         passed: true,
+        delta: { conditions: [...character.conditions, condition] },
         message: `Condition applied: ${condition}.`,
       };
     }
@@ -443,7 +443,7 @@ export class RuleEngine {
 
     if (actionsUsed > 1) issues.push(`Used ${actionsUsed} actions (max 1).`);
     if (bonusActionsUsed > 1) issues.push(`Used ${bonusActionsUsed} bonus actions (max 1).`);
-    if (reactionUsed && reactionUsed) issues.push(`Reaction already used.`);
+    if (reactionUsed) issues.push(`Reaction already used.`);
 
     return {
       passed: issues.length === 0,
@@ -525,23 +525,24 @@ export class RuleEngine {
 
   /**
    * Rule 22: Prone/Standing Mechanics
+   * Returns a delta — caller applies new conditions array (no mutation).
    */
   toggleProne(character: CharacterState): RuleCheckResult {
     const isProne = character.conditions.includes('prone');
 
     if (isProne) {
-      character.conditions = character.conditions.filter((c) => c !== 'prone');
       return {
         passed: true,
+        delta: { conditions: character.conditions.filter((c) => c !== 'prone') },
         message: `Character stood up.`,
       };
-    } else {
-      character.conditions.push('prone');
-      return {
-        passed: true,
-        message: `Character knocked prone.`,
-      };
     }
+
+    return {
+      passed: true,
+      delta: { conditions: [...character.conditions, 'prone'] },
+      message: `Character knocked prone.`,
+    };
   }
 }
 

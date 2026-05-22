@@ -97,6 +97,7 @@ export const useGameStore = create<GameStoreInternal>((set, get) => {
 
     // Internal: Save to localStorage
     saveToLocalStorage: () => {
+      if (typeof window === 'undefined') return;
       try {
         const { character, worldLore, sessionHistory, storyCards, memories, campaignTitle } = get();
         const state = { character, worldLore, sessionHistory, storyCards, memories, campaignTitle };
@@ -110,6 +111,7 @@ export const useGameStore = create<GameStoreInternal>((set, get) => {
 
     // Internal: Load from localStorage
     loadFromLocalStorage: () => {
+      if (typeof window === 'undefined') return;
       try {
         const stored = localStorage.getItem('xekkodnd-game-state');
         if (stored) {
@@ -279,7 +281,9 @@ export const useGameStore = create<GameStoreInternal>((set, get) => {
         campaignTitle: 'Cuộc phiêu lưu mới',
         error: null,
       });
-      localStorage.removeItem('xekkodnd-game-state');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('xekkodnd-game-state');
+      }
     },
 
     // Add chat message
