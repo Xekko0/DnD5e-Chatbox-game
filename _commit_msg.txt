@@ -1,0 +1,17 @@
+feat: UI layout 3 vung + ket noi Ollama + dac ta v1
+
+- Cau truc lai GameLayout theo DAC_TA_V1 (FR-UI-01..05)
+  CharacterSheet trai, AdventureMode giua, NotebookPanel phai
+- Tach component: AdventureMode, AdventurePicker, AppHeader,
+  NotebookPanel, SettingsPanel
+- Sidebar doi thanh NotebookTabs (NPC/Dia diem/Quest/Story Cards/Ky uc)
+- CharacterSheet: compact mode, chinh inline HP/AC/stats
+- Xoa hooks/useGameStore.ts (trung lap); giu store/ lam nguon duy nhat
+- Them @xekko/core/client (browser-safe, khong keo fs vao bundle)
+- Tao packages/core/src/ollama.ts: ollamaChat, testOllamaConnection
+- Sua CampaignPresenter.generateNarrative -> goi Ollama localhost:11434
+- Types chuyen vao @xekko/core/src/types (single source of truth)
+- Store them: storyCards, memories, updateWorldLore, resetAdventure
+- globals.css / layout.tsx: dark theme, lang=vi
+- Them docs/dac-ta/DAC_TA_V1.md + docs/IDEAS_V2.md
+- Build Next.js 16 pass TypeScript check
