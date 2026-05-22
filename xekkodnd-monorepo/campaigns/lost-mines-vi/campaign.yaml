@@ -1,0 +1,21 @@
+# Campaign: Hầm Mỏ Đã Mất (Lost Mines of Phandelver — Việt hóa)
+# PLAN_V5 §4.1, §8.1 — pre-built campaign tiếng Việt, 5-10 scene
+# TODO: Viết tay nội dung campaign
+title: "Hầm Mỏ Đã Mất"
+language: vi-VN
+level_range: [1, 5]
+recommended_party_size: 1
+narrative_style:
+  default: "high-fantasy-traditional"
+  available:
+    - "high-fantasy-traditional"
+    - "kiem-hiep"
+    - "light-hearted"
+gm_persona:
+  default: "wise-narrator"
+starting_scene: "01-mo-dau"
+world_map: "maps/world/phandelver-region.png"
+description: |
+  Bạn được thuê hộ tống một chuyến hàng đến thị trấn Phandalin.
+  Nhưng khi đến ngã ba rừng Triboar, bạn phát hiện đoàn hộ tống phía trước
+  đã bị phục kích — và câu chuyện thực sự bắt đầu từ đây...
