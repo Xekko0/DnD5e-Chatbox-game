@@ -15,7 +15,7 @@ export type {
   SessionHistory,
   GameSnapshot,
   LayeredMemory,
-} from '../../../apps/web/src/types';
+} from './types';
 
 import type {
   WorldLore,
@@ -23,7 +23,7 @@ import type {
   SessionHistory,
   GameSnapshot,
   LayeredMemory,
-} from '../../../apps/web/src/types';
+} from './types';
 
 /**
  * Validation schemas for each layer

@@ -4,7 +4,7 @@
  * No dependencies, returns standardized RuleCheckResult
  */
 
-import type { CharacterState, RuleCheckResult, AbilityScore } from '../../../apps/web/src/types';
+import type { CharacterState, RuleCheckResult, AbilityScore, Condition } from './types';
 
 /**
  * Roll a d20 with optional advantage/disadvantage
@@ -364,7 +364,7 @@ export class RuleEngine {
    * Rule 13: Condition Application
    * Apply or remove conditions
    */
-  applyCondition(character: CharacterState, condition: string): RuleCheckResult {
+  applyCondition(character: CharacterState, condition: Condition): RuleCheckResult {
     if (!character.conditions.includes(condition)) {
       character.conditions.push(condition);
       return {

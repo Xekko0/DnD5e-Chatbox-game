@@ -1,3 +1,7 @@
+/**
+ * @deprecated Dùng AdventureMode trong GameLayout (đã nối CampaignPresenter + Ollama).
+ * Giữ file để tham khảo; không import trong app.
+ */
 'use client';
 
 import { useState } from 'react';

@@ -14,8 +14,9 @@ import type {
   CampaignPresenterConfig,
   ChatMessage,
   DiceRoll,
-} from '../../../apps/web/src/types';
+} from './types';
 import { RuleEngine } from './RuleEngine';
+import { buildDmSystemPrompt, ollamaChat, type OllamaChatMessage } from './ollama';
 
 /**
  * Intent Parser - Analyzes player input and extracts intent
@@ -121,15 +122,37 @@ export class CampaignPresenter {
   private ruleEngine: RuleEngine;
   private intentParser: IntentParser;
   private modelName: string;
+  private ollamaBaseUrl: string;
   private narrativeCache: Map<string, string> = new Map();
 
   constructor(config: CampaignPresenterConfig) {
     this.character = config.characterState;
     this.worldLore = config.worldLore;
-    this.sessionHistory = { sessionId: `session-${Date.now()}`, campaignId: 'default', startedAt: new Date().toISOString(), messages: [], diceRolls: [], characterActions: [] };
+    this.sessionHistory =
+      config.sessionHistory ?? {
+        sessionId: `session-${Date.now()}`,
+        campaignId: 'default',
+        startedAt: new Date().toISOString(),
+        messages: [],
+        diceRolls: [],
+        characterActions: [],
+      };
     this.ruleEngine = new RuleEngine();
     this.intentParser = new IntentParser();
     this.modelName = config.modelName || 'llama3.1:8b';
+    this.ollamaBaseUrl = config.ollamaBaseUrl || 'http://localhost:11434';
+  }
+
+  /**
+   * Sync chat history from UI store before each turn
+   */
+  syncSession(sessionHistory: SessionHistory): void {
+    this.sessionHistory = sessionHistory;
+    this.character = { ...this.character };
+  }
+
+  syncCharacter(character: CharacterState): void {
+    this.character = character;
   }
 
   /**
@@ -162,7 +185,14 @@ export class CampaignPresenter {
     switch (intent.intent) {
       case 'roll': {
         ruleChecksApplied.push('dice-roll');
-        const diceResult = this.handleDiceRoll(intent.parsed?.numDice || 1, intent.parsed?.dieSize || 20, intent.parsed?.modifier || 0);
+        const rollParsed = intent.parsed as
+          | { numDice?: number; dieSize?: number; modifier?: number }
+          | undefined;
+        const diceResult = this.handleDiceRoll(
+          rollParsed?.numDice ?? 1,
+          rollParsed?.dieSize ?? 20,
+          rollParsed?.modifier ?? 0
+        );
         diceRolls.push(diceResult.roll);
         narrativeResponse = diceResult.narrative;
         messages.push({
@@ -301,25 +331,40 @@ export class CampaignPresenter {
   }
 
   /**
-   * Generate narrative response (stubbed - can integrate with LLM)
+   * Generate narrative via Ollama (fallback stub if offline)
    */
-  private async generateNarrative(userInput: string, intent: IntentParseResult): Promise<string> {
-    // Cache hit
-    if (this.narrativeCache.has(userInput)) {
-      return this.narrativeCache.get(userInput)!;
-    }
-
-    // Stubbed narrative - in real implementation, send to LLM
-    const narratives = [
-      `The DM nods at your action: "${userInput}". What do you do next?`,
-      `Your action echoes through the chamber. The DM considers: "${userInput}".`,
-      `${this.worldLore.campaignName}: The story unfolds as you describe it.`,
-      `The narrative continues: "${userInput}". Your ${this.character.class} moves forward...`,
+  private async generateNarrative(userInput: string, _intent: IntentParseResult): Promise<string> {
+    const ollamaMessages: OllamaChatMessage[] = [
+      { role: 'system', content: buildDmSystemPrompt() },
+      ...this.sessionHistory.messages.map((message) => ({
+        role: (message.role === 'assistant' ? 'assistant' : message.role === 'system' ? 'system' : 'user') as OllamaChatMessage['role'],
+        content: message.content,
+      })),
     ];
 
-    const response = narratives[Math.floor(Math.random() * narratives.length)];
-    this.narrativeCache.set(userInput, response);
-    return response;
+    const hasUserTurn = ollamaMessages.some((message) => message.role === 'user' && message.content === userInput);
+    if (!hasUserTurn) {
+      ollamaMessages.push({ role: 'user', content: userInput });
+    }
+
+    try {
+      const response = await ollamaChat({
+        baseUrl: this.ollamaBaseUrl,
+        model: this.modelName,
+        messages: ollamaMessages,
+      });
+      if (response) {
+        return response;
+      }
+    } catch {
+      // fall through to offline message
+    }
+
+    return (
+      'Không kết nối được Ollama tại localhost:11434. ' +
+      'Hãy cài Ollama, chạy model (vd. llama3.1:8b), rồi thử lại. ' +
+      `Hành động của bạn: "${userInput}".`
+    );
   }
 
   /**
@@ -359,10 +404,17 @@ export class CampaignPresenter {
 /**
  * Factory function
  */
-export function createCampaignPresenter(character: CharacterState, worldLore: WorldLore): CampaignPresenter {
+export function createCampaignPresenter(
+  character: CharacterState,
+  worldLore: WorldLore,
+  sessionHistory?: SessionHistory,
+  options?: { modelName?: string; ollamaBaseUrl?: string }
+): CampaignPresenter {
   return new CampaignPresenter({
     characterState: character,
     worldLore,
-    modelName: 'llama3.1:8b',
+    sessionHistory,
+    modelName: options?.modelName ?? 'llama3.1:8b',
+    ollamaBaseUrl: options?.ollamaBaseUrl,
   });
 }

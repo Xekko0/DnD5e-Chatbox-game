@@ -1,58 +1,50 @@
 'use client';
 
-import { Home, Sword, Scroll, Map, BookOpen } from 'lucide-react';
+import { BookOpen, Brain, MapPin, Scroll, Users } from 'lucide-react';
 
-type TabId = 'chat' | 'character' | 'inventory' | 'map' | 'quests';
+export type NotebookTabId = 'npc' | 'location' | 'quest' | 'story' | 'memory';
 
-interface TabItem {
-  id: TabId;
+export interface NotebookTabItem {
+  id: NotebookTabId;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
 }
 
-interface SidebarProps {
-  activeTab: TabId;
-  onTabChange: (tab: TabId) => void;
+export const NOTEBOOK_TABS: NotebookTabItem[] = [
+  { id: 'npc', label: 'NPC', icon: Users },
+  { id: 'location', label: 'Địa điểm', icon: MapPin },
+  { id: 'quest', label: 'Nhiệm vụ', icon: Scroll },
+  { id: 'story', label: 'Story Cards', icon: BookOpen },
+  { id: 'memory', label: 'Ký ức', icon: Brain },
+];
+
+interface NotebookTabsProps {
+  activeTab: NotebookTabId;
+  onTabChange: (tab: NotebookTabId) => void;
 }
 
-export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
-  const tabs: TabItem[] = [
-    { id: 'chat', label: 'Chat', icon: Home },
-    { id: 'character', label: 'Character', icon: Sword },
-    { id: 'inventory', label: 'Inventory', icon: Scroll },
-    { id: 'map', label: 'Map', icon: Map },
-    { id: 'quests', label: 'Quests', icon: BookOpen },
-  ];
-
+/** Tab bar Notebook — DAC_TA_V1 FR-UI-03 (sửa từ Sidebar cũ) */
+export default function NotebookTabs({ activeTab, onTabChange }: NotebookTabsProps) {
   return (
-    <div className="w-64 bg-zinc-900 border-r border-zinc-800 flex flex-col">
-      <div className="p-4 border-b border-zinc-800">
-        <h2 className="text-lg font-semibold text-amber-300">XekkoDND</h2>
-      </div>
-      
-      <nav className="flex-1 p-3">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => onTabChange(tab.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl mb-1 text-left transition-colors ${
-                activeTab === tab.id 
-                  ? 'bg-zinc-800 text-white' 
-                  : 'hover:bg-zinc-800 text-zinc-400'
-              }`}
-            >
-              <Icon className="w-5 h-5" />
-              <span className="font-medium">{tab.label}</span>
-            </button>
-          );
-        })}
-      </nav>
-
-      <div className="p-4 border-t border-zinc-800 text-xs text-zinc-500">
-        Campaign: The Whispering Caverns
-      </div>
+    <div className="flex border-b border-zinc-800/50 bg-[#0d0f12]">
+      {NOTEBOOK_TABS.map((tab) => {
+        const Icon = tab.icon;
+        const active = activeTab === tab.id;
+        return (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => onTabChange(tab.id)}
+            title={tab.label}
+            className={`flex flex-1 flex-col items-center gap-1 py-3 text-[10px] font-bold uppercase tracking-wider transition-colors ${
+              active ? 'border-b-2 border-amber-500 text-amber-400 bg-amber-500/5' : 'text-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            <Icon className="h-4 w-4" />
+            <span className="hidden xl:inline">{tab.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

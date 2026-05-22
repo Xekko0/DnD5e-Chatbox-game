@@ -12,7 +12,43 @@ import type {
   SessionHistory,
   ChatMessage,
   DiceRoll,
+  StoryCard,
+  MemoryNote,
 } from '@/types';
+
+function createDefaultWorldLore(): WorldLore {
+  return {
+    campaignName: 'Current Adventure',
+    setting: 'Fantasy',
+    currentDate: 'Day 1',
+    currentTime: 'Morning',
+    locations: [],
+    npcs: [],
+    factions: [],
+    questLog: [],
+    loreNotes: '',
+  };
+}
+
+function createDefaultSessionHistory(): SessionHistory {
+  const now = new Date().toISOString();
+  return {
+    sessionId: `session-${Date.now()}`,
+    campaignId: 'default',
+    startedAt: now,
+    messages: [
+      {
+        id: `msg-welcome-${Date.now()}`,
+        role: 'assistant',
+        content:
+          'Chào chiến binh! Ta là Dungeon Master. Hãy mô tả hành động của ngươi — ta sẽ kể tiếp câu chuyện bằng tiếng Việt.',
+        timestamp: now,
+      },
+    ],
+    diceRolls: [],
+    characterActions: [],
+  };
+}
 
 interface GameStoreInternal extends GameStoreState, GameStoreActions {
   // Undo/Redo history
@@ -49,6 +85,9 @@ export const useGameStore = create<GameStoreInternal>((set, get) => {
     character: null,
     worldLore: null,
     sessionHistory: null,
+    storyCards: [],
+    memories: [],
+    campaignTitle: 'Cuộc phiêu lưu mới',
     isLoading: false,
     error: null,
     lastSavedAt: null,
@@ -59,8 +98,8 @@ export const useGameStore = create<GameStoreInternal>((set, get) => {
     // Internal: Save to localStorage
     saveToLocalStorage: () => {
       try {
-        const { character, worldLore, sessionHistory } = get();
-        const state = { character, worldLore, sessionHistory };
+        const { character, worldLore, sessionHistory, storyCards, memories, campaignTitle } = get();
+        const state = { character, worldLore, sessionHistory, storyCards, memories, campaignTitle };
         localStorage.setItem('xekkodnd-game-state', JSON.stringify(state));
         set({ lastSavedAt: new Date().toISOString() });
         console.log('[GameStore] Saved to localStorage');
@@ -180,7 +219,13 @@ export const useGameStore = create<GameStoreInternal>((set, get) => {
 
       set({
         character: normalizedCharacter,
+        worldLore: createDefaultWorldLore(),
+        sessionHistory: createDefaultSessionHistory(),
+        storyCards: [],
+        memories: [],
+        campaignTitle: `${normalizedCharacter.name} — ${createDefaultWorldLore().campaignName}`,
         lastSavedAt: new Date().toISOString(),
+        error: null,
       });
 
       get().pushHistory();
@@ -193,6 +238,48 @@ export const useGameStore = create<GameStoreInternal>((set, get) => {
         character: state.character ? { ...state.character, ...updates, updatedAt: new Date().toISOString() } : null,
       }));
       get().pushHistory();
+      get().saveToLocalStorage();
+    },
+
+    updateWorldLore: (updates: Partial<WorldLore>) => {
+      set((state) => ({
+        worldLore: state.worldLore ? { ...state.worldLore, ...updates } : null,
+      }));
+      get().pushHistory();
+      get().saveToLocalStorage();
+    },
+
+    addStoryCard: (card: StoryCard) => {
+      set((state) => ({ storyCards: [...state.storyCards, card] }));
+      get().saveToLocalStorage();
+    },
+
+    removeStoryCard: (id: string) => {
+      set((state) => ({ storyCards: state.storyCards.filter((card) => card.id !== id) }));
+      get().saveToLocalStorage();
+    },
+
+    addMemoryNote: (note: MemoryNote) => {
+      set((state) => ({ memories: [...state.memories, note] }));
+      get().saveToLocalStorage();
+    },
+
+    setCampaignTitle: (title: string) => {
+      set({ campaignTitle: title });
+      get().saveToLocalStorage();
+    },
+
+    resetAdventure: () => {
+      set({
+        character: null,
+        worldLore: null,
+        sessionHistory: null,
+        storyCards: [],
+        memories: [],
+        campaignTitle: 'Cuộc phiêu lưu mới',
+        error: null,
+      });
+      localStorage.removeItem('xekkodnd-game-state');
     },
 
     // Add chat message
@@ -279,6 +366,13 @@ export const useGameStoreActions = () =>
     saveGame: state.saveGame,
     createCharacter: state.createCharacter,
     updateCharacter: state.updateCharacter,
+    updateWorldLore: state.updateWorldLore,
+    addStoryCard: state.addStoryCard,
+    removeStoryCard: state.removeStoryCard,
+    addMemoryNote: state.addMemoryNote,
+    setCampaignTitle: state.setCampaignTitle,
+    resetAdventure: state.resetAdventure,
+    loadFromLocalStorage: state.loadFromLocalStorage,
     addChatMessage: state.addChatMessage,
     addDiceRoll: state.addDiceRoll,
     addMessage: state.addMessage,
