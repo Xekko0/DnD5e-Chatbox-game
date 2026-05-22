@@ -1,0 +1,109 @@
+# ==========================================
+# DEPENDENCIES - Không cần đọc source của package
+# ==========================================
+**/node_modules/
+**/.pnp/
+**/.pnp.js
+
+# ==========================================
+# BUILD OUTPUTS - File generate, không phải source
+# ==========================================
+**/.next/
+**/dist/
+**/build/
+**/out/
+**/.turbo/
+**/tsup.config.*
+
+# ==========================================
+# TAURI - Binary & build artifacts
+# ==========================================
+**/src-tauri/target/
+**/src-tauri/WixTools/
+
+# ==========================================
+# PYTHON - Venv và cache
+# ==========================================
+**/venv/
+**/.venv/
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.mypy_cache/
+**/*.egg-info/
+
+# ==========================================
+# DATABASE & SAVE FILES - Runtime data
+# ==========================================
+**/*.sqlite
+**/*.sqlite3
+**/*.db
+**/saves/
+**/game-state*.json
+**/snapshots/
+
+# ==========================================
+# D&D SRD DATA - File lớn, AI không cần đọc thường xuyên
+# ==========================================
+packages/core/src/data/srd/5e-core.json
+
+# ==========================================
+# ASSETS - Binary, không phân tích được
+# ==========================================
+**/public/assets/
+**/*.png
+**/*.jpg
+**/*.jpeg
+**/*.gif
+**/*.webp
+**/*.ico
+**/*.ttf
+**/*.woff
+**/*.woff2
+**/*.mp3
+**/*.ogg
+**/*.wav
+
+# ComfyUI models - Rất nặng
+**/models/
+**/comfyui/models/
+**/checkpoints/
+**/loras/
+
+# ==========================================
+# LOCK FILES - Không cần AI đọc
+# ==========================================
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+Cargo.lock
+
+# ==========================================
+# ENV & SECRETS
+# ==========================================
+.env
+.env.*
+!.env.example
+
+# ==========================================
+# LOGS & TEMP
+# ==========================================
+**/*.log
+**/logs/
+**/.DS_Store
+**/Thumbs.db
+**/.cache/
+
+# ==========================================
+# TEST COVERAGE & REPORTS
+# ==========================================
+**/coverage/
+**/.nyc_output/
+**/test-results/
+
+# ==========================================
+# IDE
+# ==========================================
+**/.idea/
+**/*.suo
+**/*.user

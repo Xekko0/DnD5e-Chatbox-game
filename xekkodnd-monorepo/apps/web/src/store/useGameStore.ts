@@ -1,6 +1,6 @@
 /**
- * Game Store (0.6) - Zustand + Undo/Redo + UI State
- * Central state management connected to LayeredMemory with auto-save every 30s
+ * Game Store (0.7) - Zustand + Undo/Redo + Dexie IndexedDB
+ * Central state management. Persistence: Dexie (IndexedDB) với fallback localStorage
  */
 
 import { create } from 'zustand';
@@ -15,6 +15,7 @@ import type {
   StoryCard,
   MemoryNote,
 } from '@/types';
+import { saveStateToDB, loadStateFromDB, deleteActiveAdventure } from './db-adapter';
 
 function createDefaultWorldLore(): WorldLore {
   return {
@@ -64,21 +65,21 @@ interface GameStoreInternal extends GameStoreState, GameStoreActions {
   
   // Internal actions
   pushHistory(): void;
-  saveToLocalStorage(): void;
+  saveToDB(): Promise<void>;
+  loadFromDB(): Promise<void>;
+  /** @deprecated dùng loadFromDB */
   loadFromLocalStorage(): void;
   setIsInCombat(inCombat: boolean): void;
   addMessage(text: string): void;
 }
 
 export const useGameStore = create<GameStoreInternal>((set, get) => {
-  // Start autosave on store creation
-  const startAutosave = () => {
+  // Autosave mỗi 30s (chỉ ở browser)
+  if (typeof window !== 'undefined') {
     setInterval(() => {
-      get().saveToLocalStorage();
-    }, 30000); // 30 seconds
-  };
-
-  startAutosave();
+      get().saveToDB().catch(console.error);
+    }, 30_000);
+  }
 
   return {
     // State
@@ -95,33 +96,34 @@ export const useGameStore = create<GameStoreInternal>((set, get) => {
     historyIndex: -1,
     isInCombat: false,
 
-    // Internal: Save to localStorage
-    saveToLocalStorage: () => {
+    // Internal: Save to Dexie (async)
+    saveToDB: async () => {
       if (typeof window === 'undefined') return;
       try {
         const { character, worldLore, sessionHistory, storyCards, memories, campaignTitle } = get();
-        const state = { character, worldLore, sessionHistory, storyCards, memories, campaignTitle };
-        localStorage.setItem('xekkodnd-game-state', JSON.stringify(state));
+        await saveStateToDB({ character, worldLore, sessionHistory, storyCards, memories, campaignTitle });
         set({ lastSavedAt: new Date().toISOString() });
-        console.log('[GameStore] Saved to localStorage');
       } catch (error) {
-        console.error('[GameStore] Failed to save to localStorage:', error);
+        console.error('[GameStore] Lỗi lưu Dexie:', error);
       }
     },
 
-    // Internal: Load from localStorage
-    loadFromLocalStorage: () => {
+    // Internal: Load from Dexie (async)
+    loadFromDB: async () => {
       if (typeof window === 'undefined') return;
       try {
-        const stored = localStorage.getItem('xekkodnd-game-state');
-        if (stored) {
-          const state = JSON.parse(stored);
-          set({ ...state, lastSavedAt: new Date().toISOString() });
-          console.log('[GameStore] Loaded from localStorage');
+        const saved = await loadStateFromDB();
+        if (saved) {
+          set({ ...saved, lastSavedAt: new Date().toISOString() });
         }
       } catch (error) {
-        console.error('[GameStore] Failed to load from localStorage:', error);
+        console.error('[GameStore] Lỗi load Dexie:', error);
       }
+    },
+
+    /** @deprecated dùng loadFromDB — giữ lại để không break caller cũ */
+    loadFromLocalStorage: () => {
+      get().loadFromDB().catch(console.error);
     },
 
     // Internal: Push current state to history
@@ -197,16 +199,12 @@ export const useGameStore = create<GameStoreInternal>((set, get) => {
       }
     },
 
-    // Save game to LayeredMemory / backend
+    // Save game to Dexie
     saveGame: async () => {
       set({ isLoading: true, error: null });
       try {
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        
-        get().saveToLocalStorage();
+        await get().saveToDB();
         set({ isLoading: false, lastSavedAt: new Date().toISOString() });
-        console.log('[GameStore] Game saved successfully');
       } catch (error) {
         set({ error: String(error), isLoading: false });
       }
@@ -231,7 +229,7 @@ export const useGameStore = create<GameStoreInternal>((set, get) => {
       });
 
       get().pushHistory();
-      get().saveToLocalStorage();
+      get().saveToDB().catch(console.error);
     },
 
     // Update character state
@@ -240,7 +238,7 @@ export const useGameStore = create<GameStoreInternal>((set, get) => {
         character: state.character ? { ...state.character, ...updates, updatedAt: new Date().toISOString() } : null,
       }));
       get().pushHistory();
-      get().saveToLocalStorage();
+      get().saveToDB().catch(console.error);
     },
 
     updateWorldLore: (updates: Partial<WorldLore>) => {
@@ -248,27 +246,27 @@ export const useGameStore = create<GameStoreInternal>((set, get) => {
         worldLore: state.worldLore ? { ...state.worldLore, ...updates } : null,
       }));
       get().pushHistory();
-      get().saveToLocalStorage();
+      get().saveToDB().catch(console.error);
     },
 
     addStoryCard: (card: StoryCard) => {
       set((state) => ({ storyCards: [...state.storyCards, card] }));
-      get().saveToLocalStorage();
+      get().saveToDB().catch(console.error);
     },
 
     removeStoryCard: (id: string) => {
       set((state) => ({ storyCards: state.storyCards.filter((card) => card.id !== id) }));
-      get().saveToLocalStorage();
+      get().saveToDB().catch(console.error);
     },
 
     addMemoryNote: (note: MemoryNote) => {
       set((state) => ({ memories: [...state.memories, note] }));
-      get().saveToLocalStorage();
+      get().saveToDB().catch(console.error);
     },
 
     setCampaignTitle: (title: string) => {
       set({ campaignTitle: title });
-      get().saveToLocalStorage();
+      get().saveToDB().catch(console.error);
     },
 
     resetAdventure: () => {
@@ -281,9 +279,8 @@ export const useGameStore = create<GameStoreInternal>((set, get) => {
         campaignTitle: 'Cuộc phiêu lưu mới',
         error: null,
       });
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('xekkodnd-game-state');
-      }
+      // Xóa dữ liệu IndexedDB
+      deleteActiveAdventure().catch(console.error);
     },
 
     // Add chat message
@@ -376,6 +373,8 @@ export const useGameStoreActions = () =>
     addMemoryNote: state.addMemoryNote,
     setCampaignTitle: state.setCampaignTitle,
     resetAdventure: state.resetAdventure,
+    loadFromDB: state.loadFromDB,
+    /** @deprecated dùng loadFromDB */
     loadFromLocalStorage: state.loadFromLocalStorage,
     addChatMessage: state.addChatMessage,
     addDiceRoll: state.addDiceRoll,

@@ -4,13 +4,19 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createCampaignPresenter, type CampaignPresenter } from '@xekko/core/client';
 import type { ChatMessage } from '@/types';
 import AdventureMode, { type NarrativeMessage, type SceneEnvironment } from '@/components/AdventureMode';
+type InputMode = 'do' | 'say' | 'story' | 'cmd';
 import AdventurePicker from '@/components/AdventurePicker';
 import AppHeader from '@/components/AppHeader';
 import CharacterCreationWizard from '@/components/CharacterCreationWizard';
-import CharacterSheet from '@/components/CharacterSheet';
+import HudBar from '@/components/hud/HudBar';
 import NotebookPanel from '@/components/NotebookPanel';
+import PlayerSheet from '@/components/sheets/PlayerSheet';
 import SettingsPanel from '@/components/SettingsPanel';
+import Minimap from '@/components/map/Minimap';
+import LocalMap from '@/components/map/LocalMap';
 import { useGameStore } from '@/store/useGameStore';
+import { useMapStore } from '@/store/useMapStore';
+import { GOBLIN_CAVE_ENTRY } from '@/components/map/sampleMaps';
 
 type AppPhase = 'picker' | 'create' | 'play';
 
@@ -29,6 +35,7 @@ export default function GameLayout() {
   const [environment, setEnvironment] = useState<SceneEnvironment>('cave');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showPlayerSheet, setShowPlayerSheet] = useState(false);
   const [hasSave, setHasSave] = useState(false);
 
   const character = useGameStore((s) => s.character);
@@ -44,6 +51,11 @@ export default function GameLayout() {
   const updateCharacter = useGameStore((s) => s.updateCharacter);
   const setError = useGameStore((s) => s.setError);
   const loadFromLocalStorage = useGameStore((s) => s.loadFromLocalStorage);
+
+  // Map store
+  const viewMode = useMapStore((s) => s.viewMode);
+  const toggleViewMode = useMapStore((s) => s.toggleViewMode);
+  const loadMap = useMapStore((s) => s.loadMap);
 
   const presenterRef = useRef<CampaignPresenter | null>(null);
 
@@ -63,8 +75,26 @@ export default function GameLayout() {
     }
   }, [phase, character]);
 
+  // Phím M — toggle view mode khi đang ở phase play
+  useEffect(() => {
+    if (phase !== 'play') return;
+
+    function handleKeyDown(e: KeyboardEvent) {
+      // Ignore when typing in input/textarea
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement).isContentEditable) return;
+      if (e.key === 'm' || e.key === 'M') {
+        e.preventDefault();
+        toggleViewMode();
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [phase, toggleViewMode]);
+
   const handlePlayerTurn = useCallback(
-    async (text: string) => {
+    async (text: string, _mode?: InputMode) => {
       const liveCharacter = useGameStore.getState().character;
       const livePresenter = presenterRef.current;
 
@@ -107,9 +137,20 @@ export default function GameLayout() {
     [addChatMessage, addDiceRoll, updateCharacter, setError]
   );
 
+  const handleCharacterCreated = useCallback(
+    (created: Parameters<typeof createCharacter>[0]) => {
+      createCharacter(created);
+      // Load the default map for the campaign
+      loadMap(GOBLIN_CAVE_ENTRY, created.name ?? 'player', 9, 3);
+      setPhase('play');
+    },
+    [createCharacter, loadMap]
+  );
+
   const chatMessages = sessionHistory ? toNarrativeMessages(sessionHistory.messages) : [];
   const chapter = 'Chương 1 · Khởi đầu';
 
+  // ── Picker phase ────────────────────────────────────────────────────────
   if (phase === 'picker') {
     return (
       <AdventurePicker
@@ -119,12 +160,16 @@ export default function GameLayout() {
         onContinue={() => {
           loadFromLocalStorage();
           const loaded = useGameStore.getState().character;
-          if (loaded) setPhase('play');
+          if (loaded) {
+            loadMap(GOBLIN_CAVE_ENTRY, loaded.name ?? 'player', 9, 3);
+            setPhase('play');
+          }
         }}
       />
     );
   }
 
+  // ── Create phase ─────────────────────────────────────────────────────────
   if (phase === 'create') {
     return (
       <div className="flex h-screen flex-col bg-[#09090b]">
@@ -133,15 +178,32 @@ export default function GameLayout() {
             ← Quay lại
           </button>
         </div>
-        <CharacterCreationWizard
-          onComplete={(created) => {
-            createCharacter(created);
-            setPhase('play');
-          }}
-        />
+        <CharacterCreationWizard onComplete={handleCharacterCreated} />
       </div>
     );
   }
+
+  // ── Play phase ───────────────────────────────────────────────────────────
+
+  const chatPanel = (
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      <AdventureMode
+        campaignChapter={chapter}
+        environment={environment}
+        messages={chatMessages}
+        isProcessing={isProcessing}
+        error={error}
+        onSend={handlePlayerTurn}
+        onRollDice={() => handlePlayerTurn('roll d20')}
+      />
+      {/* Minimap overlay — bottom-left corner, only in 'chat' view mode */}
+      {viewMode === 'chat' && (
+        <div className="absolute bottom-20 left-3 z-10">
+          <Minimap />
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-[#09090b] text-zinc-100">
@@ -151,23 +213,38 @@ export default function GameLayout() {
         environment={environment}
         onEnvironmentChange={setEnvironment}
         onOpenSettings={() => setShowSettings(true)}
-        characterName={character?.name}
       />
 
-      <div className="flex min-h-0 flex-1">
-        <CharacterSheet compact />
-        <AdventureMode
-          campaignChapter={chapter}
-          environment={environment}
-          messages={chatMessages}
-          isProcessing={isProcessing}
-          error={error}
-          onSend={handlePlayerTurn}
-          onRollDice={() => handlePlayerTurn('roll d20')}
-        />
-        <NotebookPanel />
-      </div>
+      <HudBar onOpenSheet={() => setShowPlayerSheet(true)} />
 
+      {/* Main content area — layout changes with viewMode */}
+      {viewMode === 'chat' && (
+        <div className="flex min-h-0 flex-1">
+          {chatPanel}
+          <NotebookPanel />
+        </div>
+      )}
+
+      {viewMode === 'map' && (
+        <div className="flex min-h-0 flex-1">
+          <LocalMap />
+        </div>
+      )}
+
+      {viewMode === 'split' && (
+        <div className="flex min-h-0 flex-1">
+          {/* Map — 55% width */}
+          <div className="flex min-h-0 flex-col" style={{ flex: '0 0 55%' }}>
+            <LocalMap compact />
+          </div>
+          {/* Chat — remaining 45% */}
+          <div className="flex min-h-0 flex-1 flex-col border-l border-zinc-800">
+            {chatPanel}
+          </div>
+        </div>
+      )}
+
+      <PlayerSheet open={showPlayerSheet} onClose={() => setShowPlayerSheet(false)} />
       {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
 
       <style

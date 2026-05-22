@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { Dices, Settings } from 'lucide-react';
 import type { SceneEnvironment } from '@/components/AdventureMode';
 
@@ -17,7 +16,6 @@ type AppHeaderProps = {
   environment: SceneEnvironment;
   onEnvironmentChange: (env: SceneEnvironment) => void;
   onOpenSettings: () => void;
-  characterName?: string;
 };
 
 export default function AppHeader({
@@ -26,20 +24,19 @@ export default function AppHeader({
   environment,
   onEnvironmentChange,
   onOpenSettings,
-  characterName,
 }: AppHeaderProps) {
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b border-zinc-800/40 bg-[#0d0f12] px-4">
+    <header className="flex h-12 shrink-0 items-center justify-between border-b border-zinc-800/40 bg-[#0d0f12] px-4">
       <div className="flex items-center gap-4 min-w-0">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500">
-            <Dices className="h-4 w-4 text-zinc-950" />
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-amber-500">
+            <Dices className="h-3.5 w-3.5 text-zinc-950" />
           </div>
           <span className="hidden text-xs font-black uppercase tracking-widest text-zinc-400 sm:inline">XekkoDND</span>
         </div>
         <div className="min-w-0 border-l border-zinc-800 pl-4">
-          <p className="truncate text-sm font-bold text-white">{campaignTitle}</p>
-          <p className="truncate text-[10px] text-zinc-500">{chapter}</p>
+          <p className="truncate text-sm font-bold text-white leading-none">{campaignTitle}</p>
+          <p className="truncate text-[10px] text-zinc-500 mt-0.5">{chapter}</p>
         </div>
       </div>
 
@@ -60,28 +57,14 @@ export default function AppHeader({
         ))}
       </div>
 
-      <div className="flex items-center gap-2">
-        {characterName && (
-          <span className="hidden text-xs text-zinc-500 lg:inline">{characterName}</span>
-        )}
-        <button
-          type="button"
-          onClick={onOpenSettings}
-          className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-800 hover:text-white"
-          title="Cài đặt"
-        >
-          <Settings className="h-5 w-5" />
-        </button>
-        <div className="relative h-9 w-9 overflow-hidden rounded-lg border border-amber-500/20">
-          <Image
-            src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${characterName ?? 'Player'}`}
-            alt=""
-            fill
-            sizes="36px"
-            className="object-cover"
-          />
-        </div>
-      </div>
+      <button
+        type="button"
+        onClick={onOpenSettings}
+        className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-800 hover:text-white transition-colors"
+        title="Cài đặt"
+      >
+        <Settings className="h-5 w-5" />
+      </button>
     </header>
   );
 }
